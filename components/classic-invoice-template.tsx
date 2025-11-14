@@ -124,12 +124,13 @@ export default function ClassicInvoiceTemplate({ invoice, onBack, onSendEmail }:
         .set({
           margin: [10, 10, 10, 10],
           filename: `${invoice.invoiceNo}.pdf`,
-          image: { type: "png", quality: 0.98 },
+          image: { type: "png", quality: 0.70 },
           html2canvas: {
-            scale: 2,
+            scale: 1.5,
             useCORS: true,
             allowTaint: true,
-            logging: false
+            logging: false,
+            backgroundColor: "#ffffff"
           },
           jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
         })
@@ -162,23 +163,27 @@ export default function ClassicInvoiceTemplate({ invoice, onBack, onSendEmail }:
           clientEmail: invoice.clientEmail,
           clientName: invoice.clientName,
           invoice: invoice,
-          pdfBase64, // Now properly encoded base64 PDF
+          pdfBase64,
         }),
       })
 
+      console.log("[v0] API response status:", response.status, response.statusText)
       const result = await response.json()
+      console.log("[v0] API response body:", result)
 
       if (response.ok) {
         console.log("[v0] Email sent successfully!")
         onSendEmail(invoice.invoiceNo)
         alert(`✓ Invoice sent successfully to ${invoice.clientEmail}`)
       } else {
-        console.error("[v0] Email send failed:", result)
-        alert(`Failed to send email: ${result.error || result.message || "Unknown error"}`)
+        const errorMsg = result.error || result.message || JSON.stringify(result)
+        console.error("[v0] Email send failed - Full response:", result)
+        alert(`Failed: ${errorMsg}`)
       }
     } catch (error) {
-      console.error("[v0] PDF generation or email send failed:", error)
-      alert(`Failed to send email: ${error instanceof Error ? error.message : "Network error"}`)
+      const msg = error instanceof Error ? error.message : String(error)
+      console.error("[v0] Email send error:", error, msg)
+      alert(`Error: ${msg}`)
     } finally {
       setIsSending(false)
     }

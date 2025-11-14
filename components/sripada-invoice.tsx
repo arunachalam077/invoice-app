@@ -120,12 +120,13 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
         .set({
           margin: [10, 10, 10, 10],
           filename: `${editData.invoiceNo}.pdf`,
-          image: { type: "png", quality: 0.98 },
+          image: { type: "png", quality: 0.70 },
           html2canvas: {
-            scale: 2,
+            scale: 1.5,
             useCORS: true,
             allowTaint: true,
-            logging: false
+            logging: false,
+            backgroundColor: "#ffffff"
           },
           jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
         })
