@@ -2,11 +2,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "installCommand": "npm ci",
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "JWT_SECRET": "@jwt_secret",
-    "RESEND_API_KEY": "@resend_api_key"
-  },
   "functions": {
     "api/**/*.ts": {
       "runtime": "nodejs18.x"
