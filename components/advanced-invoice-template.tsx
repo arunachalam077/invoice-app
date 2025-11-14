@@ -96,9 +96,9 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
         .set({
           margin: [10, 10, 10, 10],
           filename: `${invoice.invoiceNo}.pdf`,
-          image: { type: "jpeg", quality: 0.6 },
+          image: { type: "jpeg", quality: 0.85 },
           html2canvas: {
-            scale: 1.0,
+            scale: 1.3,
             useCORS: true,
             allowTaint: true,
             logging: false,
@@ -170,13 +170,14 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
       console.log("API response:", result)
 
       if (!response.ok) {
-        const errorMessage = result?.message || result?.error || "Failed to send email"
+        const errorMessage = result?.message || result?.error || JSON.stringify(result) || "Failed to send email"
         console.error("Email send failed:", errorMessage)
         throw new Error(errorMessage)
       }
 
       console.log("Email sent successfully!")
-      alert(`Invoice sent successfully to ${invoice.clientEmail}`)
+      console.log("Full API response:", result)
+      alert(`✓ Invoice sent successfully to ${invoice.clientEmail}`)
       onSendEmail(invoice.invoiceNo)
     } catch (error) {
       console.error("Failed to send invoice - Full error:", error)

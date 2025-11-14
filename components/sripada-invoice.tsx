@@ -116,23 +116,21 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
 
-        const pdfWorker = html2pdf()
-          .set({
-            margin: [10, 10, 10, 10],
-            filename: `${editData.invoiceNo}.pdf`,
-            image: { type: "jpeg", quality: 0.6 },
-            html2canvas: {
-              scale: 1.0,
-              useCORS: true,
-              allowTaint: true,
-              logging: false,
-              backgroundColor: "#ffffff"
-            },
-            jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
-          })
-          .from(element)
-
-      // Generate PDF as blob
+      const pdfWorker = html2pdf()
+        .set({
+          margin: [10, 10, 10, 10],
+          filename: `${editData.invoiceNo}.pdf`,
+          image: { type: "jpeg", quality: 0.85 },
+          html2canvas: {
+            scale: 1.3,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: "#ffffff"
+          },
+          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+        })
+        .from(element)      // Generate PDF as blob
       const pdfBlob = await pdfWorker.output("blob")
 
       // Convert blob to base64
@@ -177,11 +175,13 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
 
         if (response.ok) {
           console.log("[v0] Email sent successfully!")
+          console.log("[v0] Full API response:", result)
           onSendEmail(editData.invoiceNo)
           alert(`✓ Invoice sent successfully to ${editData.clientEmail}`)
         } else {
+          const errorMsg = result.error || result.message || JSON.stringify(result) || "Unknown error"
           console.error("[v0] Email send failed:", result)
-          alert(`Failed to send email: ${result.error || result.message || "Unknown error"}`)
+          alert(`Failed: ${errorMsg}`)
         }
       } catch (error) {
         console.error("[v0] Email send failed:", error)

@@ -26,45 +26,42 @@ export async function POST(request: NextRequest) {
 
     const emailContent = generateInvoiceEmail(invoice)
 
-    // Convert base64 PDF to Buffer for FormData
-    let pdfBuffer: Buffer | null = null
+    // Convert base64 PDF to Buffer only for size logging
+    let cleanBase64 = pdfBase64
     if (pdfBase64) {
       // Remove data URI prefix if present
-      const cleanBase64 = pdfBase64.includes(",") ? pdfBase64.split(",")[1] : pdfBase64
-      try {
-        pdfBuffer = Buffer.from(cleanBase64, "base64")
-        console.log("[v0] PDF buffer created, size:", pdfBuffer.length, "bytes")
-      } catch (bufferError) {
-        console.error("[v0] Failed to convert base64 to buffer:", bufferError)
-        return NextResponse.json(
-          { success: false, error: "Invalid PDF data" },
-          { status: 400 },
-        )
-      }
+      cleanBase64 = pdfBase64.includes(",") ? pdfBase64.split(",")[1] : pdfBase64
+      console.log("[v0] Cleaned base64 length:", cleanBase64.length)
     }
 
-    // Build FormData for Resend API
-    const formData = new FormData()
-    formData.append("from", "contact@sripadastudios.com")
-    formData.append("to", clientEmail)
-    formData.append("subject", emailContent.subject)
-    formData.append("html", emailContent.html)
-
-    // Add PDF attachment if available
-    if (pdfBuffer) {
-      const blob = new Blob([pdfBuffer], { type: "application/pdf" })
-      formData.append("attachments", blob, `${invoiceNo}.pdf`)
-      console.log("[v0] PDF attachment added to FormData")
+    // Build request body for Resend
+    const requestBody: any = {
+      from: "contact@sripadastudios.com",
+      to: clientEmail,
+      subject: emailContent.subject,
+      html: emailContent.html,
     }
 
-    console.log("[v0] Sending email to Resend API...")
+    // Add attachment if PDF base64 is provided
+    if (cleanBase64) {
+      requestBody.attachments = [
+        {
+          filename: `${invoiceNo}.pdf`,
+          content: cleanBase64,
+        },
+      ]
+      console.log("[v0] PDF attachment added to request body")
+    }
+
+    console.log("[v0] Sending to Resend API with JSON body...")
 
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: formData,
+      body: JSON.stringify(requestBody),
     })
 
     console.log("[v0] Resend response status:", response.status, response.statusText)
@@ -87,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorMsg = result?.error?.message || result?.error || rawText || "Failed to send email"
-      console.error("[v0] Email send failed:", errorMsg)
+      console.error("[v0] Resend API error:", errorMsg)
       return NextResponse.json(
         {
           success: false,
@@ -98,13 +95,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[v0] Email sent successfully! ID:", result.id)
+    // Resend returns { id: "..." } on success
+    const messageId = result?.id || "sent"
+    console.log("[v0] Email sent successfully! Full response:", result)
+    console.log("[v0] Message ID:", messageId)
 
     return NextResponse.json(
       {
         success: true,
         message: `Invoice ${invoiceNo} sent to ${clientEmail}`,
-        messageId: result.id,
+        messageId: messageId,
+        fullResponse: result,
       },
       { status: 200 },
     )

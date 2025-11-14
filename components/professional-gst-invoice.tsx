@@ -127,9 +127,9 @@ export default function ProfessionalGSTInvoice({ invoice, onBack, onSendEmail }:
         .set({
           margin: [10, 10, 10, 10],
           filename: `${invoice.invoiceNo}.pdf`,
-          image: { type: "jpeg", quality: 0.6 },
+          image: { type: "jpeg", quality: 0.85 },
           html2canvas: {
-            scale: 1.0,
+            scale: 1.3,
             useCORS: true,
             allowTaint: true,
             logging: false,
@@ -182,11 +182,12 @@ export default function ProfessionalGSTInvoice({ invoice, onBack, onSendEmail }:
 
       if (response.ok) {
         console.log("[v0] Email sent successfully!")
+        console.log("[v0] Full API response:", result)
         onSendEmail(invoice.invoiceNo)
         alert(`✓ Invoice sent successfully to ${invoice.clientEmail}`)
       } else {
-        const errorMsg = result.error || result.message || JSON.stringify(result)
-        console.error("[v0] Email send failed - Full response:", result)
+        const errorMsg = result.error || result.message || JSON.stringify(result) || "Unknown error"
+        console.error("[v0] Email send failed:", result)
         alert(`Failed: ${errorMsg}`)
       }
     } catch (error) {
