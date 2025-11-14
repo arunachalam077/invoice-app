@@ -79,10 +79,17 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
       // Inline images before generating PDF so logos are embedded
       await inlineImages(element)
 
-      const pdfWorker = html2pdf()
-        .set({
+      // Temporarily force the element width to A4 dimensions to avoid cropping in capture
+      const prevWidth = element.style.width || ""
+      const prevMaxWidth = element.style.maxWidth || ""
+      element.style.width = "794px"
+      element.style.maxWidth = "794px"
+
+      try {
+        const pdfWorker = html2pdf()
+          .set({
           margin: [8, 8, 8, 8],
-          filename: `${editData.invoiceNo}.pdf`,
+          filename: `${invoice.invoiceNo}.pdf`,
           image: { type: "png", quality: 0.98 },
           html2canvas: {
             scale: 2,
@@ -100,10 +107,15 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
             compress: false
           },
         })
-        .from(element)
-        .save()
+          .from(element)
+          .save()
 
-      console.log("[v0] PDF downloaded successfully")
+        console.log("[v0] PDF downloaded successfully")
+      } finally {
+        // restore previous sizing so UI is unaffected
+        element.style.width = prevWidth
+        element.style.maxWidth = prevMaxWidth
+      }
     } catch (error) {
       console.error("[v0] PDF download failed:", error)
       alert("Failed to generate PDF. Please try again.")
@@ -157,6 +169,14 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
 
       await inlineImages(element)
 
+      // Temporarily force the element width to A4 dimensions to avoid cropping in capture
+      const prevWidth = element.style.width || ""
+      const prevMaxWidth = element.style.maxWidth || ""
+      element.style.width = "794px"
+      element.style.maxWidth = "794px"
+
+      // We'll restore width in a finally after generation attempts
+
       const pdfWorker = html2pdf()
         .set({
           margin: [6, 6, 6, 6],
@@ -183,32 +203,74 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
 
       console.log("Generating PDF output...")
 
-      // Get PDF as base64
-      let pdfBase64: string
-      try {
-        const pdfBlob = await pdfWorker.output("blob")
-        console.log("PDF blob generated, size:", pdfBlob.size)
-
-        // Convert blob to base64
-        const reader = new FileReader()
-        pdfBase64 = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => {
-            const base64data = reader.result as string
-            // Remove the data:application/pdf;base64, prefix
-            const base64 = base64data.split(",")[1]
-            resolve(base64)
-          }
-          reader.onerror = (error) => {
-            console.error("FileReader error:", error)
-            reject(error)
-          }
-          reader.readAsDataURL(pdfBlob)
+      // Generate PDF base64 with retries to keep payload small when possible
+      const blobToBase64 = (blob: Blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
         })
-        console.log("PDF converted to base64, length:", pdfBase64.length)
-      } catch (pdfError) {
-        console.error("PDF generation error:", pdfError)
-        throw new Error(`Failed to generate PDF: ${pdfError instanceof Error ? pdfError.message : String(pdfError)}`)
+
+      const MAX_BASE64 = 6_000_000 // target safe size
+      const qualities = [0.98, 0.9, 0.85, 0.8, 0.7]
+      const scales = [2, 1.75, 1.5, 1.25, 1]
+
+      let pdfBase64: string | null = null
+      let lastError: any = null
+      try {
+        for (const quality of qualities) {
+        for (const scale of scales) {
+          try {
+            const worker = html2pdf()
+              .set({
+                margin: [6, 6, 6, 6],
+                filename: `${invoice.invoiceNo}.pdf`,
+                image: { type: "png", quality },
+                html2canvas: {
+                  scale,
+                  useCORS: true,
+                  allowTaint: true,
+                  logging: false,
+                  backgroundColor: "#ffffff",
+                  windowHeight: 1122,
+                  windowWidth: 794,
+                  imageTimeout: 5000,
+                },
+                jsPDF: { orientation: "portrait", unit: "mm", format: "a4", compress: false },
+              })
+              .from(element)
+
+            const blob = await worker.output("blob")
+            const dataUrl = await blobToBase64(blob)
+            const base64 = dataUrl.split(",")[1]
+            console.log("Attempt with quality", quality, "scale", scale, "-> base64 length", base64.length)
+            if (base64.length <= MAX_BASE64) {
+              pdfBase64 = base64
+              break
+            }
+            // keep last produced base64 as fallback
+            if (!pdfBase64) pdfBase64 = base64
+          } catch (e) {
+            lastError = e
+            console.warn("PDF attempt failed for quality", quality, "scale", scale, e)
+            continue
+          }
+        }
+        if (pdfBase64 && pdfBase64.length <= MAX_BASE64) break
       }
+      finally {
+        // restore previous sizing so UI is unaffected
+        element.style.width = prevWidth
+        element.style.maxWidth = prevMaxWidth
+      }
+
+      if (!pdfBase64) {
+        console.error("All PDF generation attempts failed", lastError)
+        throw new Error("Failed to generate PDF after multiple attempts")
+      }
+
+      console.log("Final PDF base64 length:", pdfBase64.length)
 
       console.log("PDF generated successfully, sending email with attachment...")
       console.log("Email details:", {
@@ -309,11 +371,19 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
         <div id="invoice-content" className="bg-white rounded-2xl shadow-xl p-12">
           {/* Header Section */}
           <div className="flex justify-between items-start mb-12 pb-8 border-b-2 border-gray-200">
-            <div>
-              <h1 className="text-4xl font-bold text-[#216974] mb-2">{invoice.studioName}</h1>
-              <p className="text-gray-600 text-sm">{invoice.studioAddress}</p>
-              <p className="text-gray-600 text-sm">{invoice.studioEmail}</p>
-            </div>
+              <div className="flex items-start gap-4">
+                <img
+                  src="/sripada-logo.png"
+                  alt="Sripada Studios"
+                  className="object-contain"
+                  style={{ width: 160, height: "auto" }}
+                />
+                <div>
+                  <h1 className="text-4xl font-bold text-[#216974] mb-2">{invoice.studioName}</h1>
+                  <p className="text-gray-600 text-sm">{invoice.studioAddress}</p>
+                  <p className="text-gray-600 text-sm">{invoice.studioEmail}</p>
+                </div>
+              </div>
             <div className="text-right">
               <h2 className="text-3xl font-bold text-gray-800 mb-4">INVOICE</h2>
               <div className={`inline-block px-4 py-2 rounded-full text-sm font-semibold border-2 ${getStatusColor()}`}>

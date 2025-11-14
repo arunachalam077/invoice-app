@@ -2,8 +2,35 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { invoiceNo, clientEmail, clientName, invoice, pdfBase64 } = body
+    // Safely read body as text first so we can handle malformed or non-JSON payloads
+    let rawBody: string | null = null
+    try {
+      rawBody = await request.text()
+    } catch (readErr) {
+      console.error("[v0] Failed to read request body:", readErr)
+      return NextResponse.json({ success: false, error: "Failed to read request body" }, { status: 400 })
+    }
+
+    // Try to parse JSON, but if parsing fails, return a clear error instead of throwing
+    let body: any = null
+    if (!rawBody) {
+      body = {}
+    } else {
+      try {
+        body = JSON.parse(rawBody)
+      } catch (parseErr) {
+        // Log a short preview of the raw body for debugging (don't log entire base64)
+        const preview = rawBody.slice(0, 200).replace(/\n/g, " ")
+        console.error("[v0] Request JSON parse failed. Body preview:", preview)
+        // If the body starts with 'Request', it's likely a proxy error page (413) rather than client JSON
+        if (rawBody.trim().startsWith("Request")) {
+          return NextResponse.json({ success: false, error: "Upstream rejected request (likely Request Entity Too Large)." }, { status: 413 })
+        }
+        return NextResponse.json({ success: false, error: "Malformed JSON in request body." }, { status: 400 })
+      }
+    }
+
+    const { invoiceNo, clientEmail, clientName, invoice, pdfBase64 } = body || {}
 
     const apiKey = process.env.RESEND_API_KEY
 

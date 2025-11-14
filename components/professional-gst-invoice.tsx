@@ -162,46 +162,53 @@ export default function ProfessionalGSTInvoice({ invoice, onBack, onSendEmail }:
       }
 
       await inlineImages(element)
-
-      const pdfWorker = html2pdf()
-        .set({
-          margin: [6, 6, 6, 6],
-          filename: `${invoice.invoiceNo}.pdf`,
-          image: { type: "png", quality: 0.98 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: "#ffffff",
-            windowHeight: 1122,
-            windowWidth: 794,
-            imageTimeout: 5000
-          },
-          jsPDF: {
-            orientation: "portrait",
-            unit: "mm",
-            format: "a4",
-            compress: false
-          },
-        })
-        .from(element)
-
-      // Generate PDF as blob
-      const pdfBlob = await pdfWorker.output("blob")
-
-      // Convert blob to base64
-      const reader = new FileReader()
-      const pdfBase64 = await new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => {
-          const base64data = reader.result as string
-          // Remove the data:application/pdf;base64, prefix
-          const base64 = base64data.split(",")[1]
-          resolve(base64)
+      // Generate PDF and retry with lower quality/scale if size is too large
+      const generatePdfBase64 = async (rootEl: HTMLElement) => {
+        const html2pdf = (await import("html2pdf.js")).default
+        const MAX_BASE64 = 6000000
+        const qualityOptions = [0.98, 0.9, 0.8, 0.7]
+        const scaleOptions = [2, 1.8, 1.6, 1.4]
+        for (let q of qualityOptions) {
+          for (let s of scaleOptions) {
+            try {
+              const worker = html2pdf()
+                .set({
+                  margin: [6, 6, 6, 6],
+                  filename: `${invoice.invoiceNo}.pdf`,
+                  image: { type: "png", quality: q },
+                  html2canvas: { scale: s, useCORS: true, allowTaint: true, logging: false, backgroundColor: "#ffffff", windowHeight: 1122, windowWidth: 794, imageTimeout: 5000 },
+                  jsPDF: { orientation: "portrait", unit: "mm", format: "a4", compress: false },
+                })
+                .from(rootEl)
+              const blob = await worker.output("blob")
+              const reader = new FileReader()
+              const base64 = await new Promise<string>((resolve, reject) => {
+                reader.onloadend = () => resolve((reader.result as string).split(",")[1])
+                reader.onerror = reject
+                reader.readAsDataURL(blob)
+              })
+              console.log(`[v0] Tried q=${q},s=${s} => len=${base64.length}`)
+              if (base64.length <= MAX_BASE64) return base64
+            } catch (err) {
+              console.warn("[v0] PDF try failed", err)
+            }
+          }
         }
-        reader.onerror = reject
-        reader.readAsDataURL(pdfBlob)
-      })
+        // fallback
+        const finalWorker = (await import("html2pdf.js")).default()
+          .set({ margin: [6, 6, 6, 6], filename: `${invoice.invoiceNo}.pdf`, image: { type: "jpeg", quality: 0.6 }, html2canvas: { scale: 1.2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff" }, jsPDF: { orientation: "portrait", unit: "mm", format: "a4" } })
+          .from(rootEl)
+        const finalBlob = await finalWorker.output("blob")
+        const finalReader = new FileReader()
+        const finalBase64 = await new Promise<string>((resolve, reject) => {
+          finalReader.onloadend = () => resolve((finalReader.result as string).split(",")[1])
+          finalReader.onerror = reject
+          finalReader.readAsDataURL(finalBlob)
+        })
+        return finalBase64
+      }
+
+      const pdfBase64 = await generatePdfBase64(element)
 
       console.log("[v0] PDF generated successfully, sending email with attachment...")
       console.log("[v0] PDF base64 length:", pdfBase64.length)
