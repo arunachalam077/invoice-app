@@ -5,91 +5,100 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { invoiceNo, clientEmail, clientName, invoice, pdfBase64 } = body
 
-    const apiKey = process.env.RESEND_API_KEY || "re_Kpt5i8k4_65bPLnPqra7uSzgAQf3uHh8L"
+    const apiKey = process.env.RESEND_API_KEY
 
     if (!apiKey) {
-      const setupMessage =
-        "Email service not configured. Please add RESEND_API_KEY to your project's environment variables. Visit https://resend.com to get your API key."
-      console.error("[v0] RESEND_API_KEY is missing:", setupMessage)
+      console.error("[v0] RESEND_API_KEY is missing")
       return NextResponse.json(
         {
           success: false,
-          error: "Email service not configured",
-          message: setupMessage,
+          error: "Email service not configured. Please add RESEND_API_KEY to your environment variables.",
         },
         { status: 400 },
       )
     }
 
-    console.log("[v0] Attempting to send invoice email via Resend:", {
+    console.log("[v0] Starting invoice email send:", {
       to: clientEmail,
       invoiceNo,
-      from: "contact@sripadastudios.com",
       hasAttachment: !!pdfBase64,
-      pdfBase64Length: pdfBase64?.length || 0,
     })
 
     const emailContent = generateInvoiceEmail(invoice)
 
-    const requestBody: any = {
-      from: "contact@sripadastudios.com",
-      to: clientEmail,
-      subject: emailContent.subject,
-      html: emailContent.html,
+    // Convert base64 PDF to Buffer for FormData
+    let pdfBuffer: Buffer | null = null
+    if (pdfBase64) {
+      // Remove data URI prefix if present
+      const cleanBase64 = pdfBase64.includes(",") ? pdfBase64.split(",")[1] : pdfBase64
+      try {
+        pdfBuffer = Buffer.from(cleanBase64, "base64")
+        console.log("[v0] PDF buffer created, size:", pdfBuffer.length, "bytes")
+      } catch (bufferError) {
+        console.error("[v0] Failed to convert base64 to buffer:", bufferError)
+        return NextResponse.json(
+          { success: false, error: "Invalid PDF data" },
+          { status: 400 },
+        )
+      }
     }
 
-    // Only add attachment if PDF base64 is provided
-    if (pdfBase64) {
-      requestBody.attachments = [
-        {
-          filename: `${invoiceNo}.pdf`,
-          content: pdfBase64, // Send base64 directly - Resend will handle it
-        },
-      ]
+    // Build FormData for Resend API
+    const formData = new FormData()
+    formData.append("from", "contact@sripadastudios.com")
+    formData.append("to", clientEmail)
+    formData.append("subject", emailContent.subject)
+    formData.append("html", emailContent.html)
+
+    // Add PDF attachment if available
+    if (pdfBuffer) {
+      const blob = new Blob([pdfBuffer], { type: "application/pdf" })
+      formData.append("attachments", blob, `${invoiceNo}.pdf`)
+      console.log("[v0] PDF attachment added to FormData")
     }
+
+    console.log("[v0] Sending email to Resend API...")
 
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(requestBody),
+      body: formData,
     })
 
-    // Try to parse JSON response from Resend; if parsing fails, fallback to text
+    console.log("[v0] Resend response status:", response.status, response.statusText)
+
     let result: any = null
     let rawText: string | null = null
+
     try {
       result = await response.json()
+      console.log("[v0] Resend JSON response:", result)
     } catch (parseError) {
       try {
         rawText = await response.text()
+        console.log("[v0] Resend text response:", rawText)
       } catch (textError) {
-        rawText = String(textError)
+        rawText = "Could not read response"
       }
-      result = { message: rawText }
+      result = { error: rawText }
     }
 
-    console.log("[v0] Resend API response status:", response.status)
-    console.log("[v0] Resend API response (parsed):", result)
-    if (rawText) console.log("[v0] Resend API raw text response:", rawText)
-
     if (!response.ok) {
-      console.error("[v0] Resend API error:", result)
-      const errorMessage = result?.message || rawText || "Failed to send invoice email"
+      const errorMsg = result?.error?.message || result?.error || rawText || "Failed to send email"
+      console.error("[v0] Email send failed:", errorMsg)
       return NextResponse.json(
-        { success: false, error: errorMessage, details: result },
+        {
+          success: false,
+          error: errorMsg,
+          status: response.status,
+        },
         { status: response.status },
       )
     }
 
-    console.log("[v0] Invoice email sent successfully:", {
-      to: clientEmail,
-      invoiceNo,
-      messageId: result.id,
-      attachmentCount: pdfBase64 ? 1 : 0,
-    })
+    console.log("[v0] Email sent successfully! ID:", result.id)
 
     return NextResponse.json(
       {
@@ -100,8 +109,15 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     )
   } catch (error) {
-    console.error("[v0] Invoice email send error:", error)
-    return NextResponse.json({ success: false, error: "Failed to send invoice email" }, { status: 500 })
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error("[v0] Invoice email error:", errorMsg)
+    return NextResponse.json(
+      {
+        success: false,
+        error: errorMsg,
+      },
+      { status: 500 },
+    )
   }
 }
 
