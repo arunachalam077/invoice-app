@@ -109,8 +109,8 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
 
-      // Wait for images to load
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Wait for images to load - increased time to ensure logo loads
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
       const pdfWorker = html2pdf()
         .set({
@@ -124,7 +124,8 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
             logging: false,
             backgroundColor: "#ffffff",
             windowHeight: 1122,
-            windowWidth: 794
+            windowWidth: 794,
+            imageTimeout: 5000
           },
           jsPDF: {
             orientation: "portrait",
@@ -351,30 +352,13 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
             >
               {/* Logo and Company Info Section */}
               <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
-                {/* Sripada Logo */}
-                <svg viewBox="0 0 200 100" style={{ height: "60px", width: "auto" }} xmlns="http://www.w3.org/2000/svg">
-                  {/* Left decorative element with circles and curves */}
-                  <g>
-                    {/* Orange/brown arc */}
-                    <path d="M 25 30 Q 15 30 15 40 Q 15 50 25 50" fill="none" stroke="#C85A28" strokeWidth="8" strokeLinecap="round" />
-                    {/* Teal arc */}
-                    <path d="M 20 25 Q 10 25 10 35 Q 10 55 30 65" fill="none" stroke="#1B7F8C" strokeWidth="8" strokeLinecap="round" />
-                    {/* Brown circles */}
-                    <circle cx="35" cy="35" r="5" fill="#C85A28" />
-                    <circle cx="30" cy="55" r="4" fill="#C85A28" />
-                    {/* Teal circles */}
-                    <circle cx="20" cy="20" r="4" fill="#1B7F8C" />
-                    <circle cx="40" cy="60" r="5" fill="#1B7F8C" />
-                  </g>
-                  {/* Sripada Text */}
-                  <text x="65" y="55" fontSize="32" fontWeight="bold" fill="#1B7F8C" fontFamily="Arial, sans-serif">
-                    Sripada
-                  </text>
-                  {/* Studios Text */}
-                  <text x="65" y="85" fontSize="18" fontWeight="bold" fill="#C85A28" fontFamily="Arial, sans-serif">
-                    STUDIOS
-                  </text>
-                </svg>
+                {/* Sripada Logo - Image */}
+                <img 
+                  src="/sripada-logo.png" 
+                  alt="Sripada Studios" 
+                  style={{ height: "70px", width: "auto", objectFit: "contain" }}
+                  crossOrigin="anonymous"
+                />
               </div>
 
               {/* Invoice Title and GST Info */}

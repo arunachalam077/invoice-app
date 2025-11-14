@@ -128,6 +128,9 @@ export default function GSTInvoiceTemplate({ invoice, onBack, onSendEmail }: GST
 
         // Recreate html2pdf with updated settings
         const html2pdfLib = (await import("html2pdf.js")).default
+        // Wait for images to load
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
         const pdfWorker = html2pdfLib()
           .set({
             margin: [6, 6, 6, 6],
@@ -140,7 +143,8 @@ export default function GSTInvoiceTemplate({ invoice, onBack, onSendEmail }: GST
               logging: false,
               backgroundColor: "#ffffff",
               windowHeight: 1122,
-              windowWidth: 794
+              windowWidth: 794,
+              imageTimeout: 5000
             },
             jsPDF: {
               orientation: "portrait",
@@ -269,7 +273,7 @@ export default function GSTInvoiceTemplate({ invoice, onBack, onSendEmail }: GST
           <div className="mb-6 pb-4 border-b-2 border-black">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-4">
-                <img src="/sripada-logo-compact.svg" alt="Sripada Studios" className="h-14 w-auto" />
+                <img src="/sripada-logo.png" alt="Sripada Studios" className="h-14 w-auto object-contain" />
                 <div>
                   <h1 className="text-2xl font-bold mb-1">{invoice.studioName}</h1>
                   <p className="text-xs text-gray-700">{invoice.studioAddress}</p>

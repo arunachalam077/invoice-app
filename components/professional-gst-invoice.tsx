@@ -110,6 +110,9 @@ export default function ProfessionalGSTInvoice({ invoice, onBack, onSendEmail }:
       // Wait for images to load
       await new Promise(resolve => setTimeout(resolve, 500))
 
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       const pdfWorker = html2pdf()
         .set({
           margin: [6, 6, 6, 6],
@@ -122,7 +125,8 @@ export default function ProfessionalGSTInvoice({ invoice, onBack, onSendEmail }:
             logging: false,
             backgroundColor: "#ffffff",
             windowHeight: 1122,
-            windowWidth: 794
+            windowWidth: 794,
+            imageTimeout: 5000
           },
           jsPDF: {
             orientation: "portrait",
@@ -238,7 +242,7 @@ export default function ProfessionalGSTInvoice({ invoice, onBack, onSendEmail }:
           <div className="border-b-4 border-[#0f3a47] pb-6 mb-6">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-4">
-                <img src="/sripada-logo-compact.svg" alt="Sripada Studios" className="h-16 w-auto" />
+                <img src="/sripada-logo.png" alt="Sripada Studios" className="h-16 w-auto object-contain" />
                 <div>
                   <p className="text-sm text-gray-600 mb-1">
                     GST NUMBER: <span className="font-bold text-gray-900">{invoice.gstNumber}</span>

@@ -103,6 +103,9 @@ export default function ClassicInvoiceTemplate({ invoice, onBack, onSendEmail }:
       // Wait for images to load
       await new Promise(resolve => setTimeout(resolve, 500))
 
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       const pdfWorker = html2pdf()
         .set({
           margin: [6, 6, 6, 6],
@@ -115,7 +118,8 @@ export default function ClassicInvoiceTemplate({ invoice, onBack, onSendEmail }:
             logging: false,
             backgroundColor: "#ffffff",
             windowHeight: 1122,
-            windowWidth: 794
+            windowWidth: 794,
+            imageTimeout: 5000
           },
           jsPDF: {
             orientation: "portrait",
@@ -244,7 +248,7 @@ export default function ClassicInvoiceTemplate({ invoice, onBack, onSendEmail }:
           <div className="mb-12 pb-6 border-b-4 border-[#216974]">
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-4">
-                <img src="/sripada-logo-compact.svg" alt="Sripada Studios" className="h-16 w-auto" />
+                <img src="/sripada-logo.png" alt="Sripada Studios" className="h-16 w-auto object-contain" />
                 <div>
                   <h1 className="text-4xl font-bold text-[#216974] mb-2">{invoice.studioName}</h1>
                   <p className="text-gray-600 text-sm">{invoice.studioAddress}</p>

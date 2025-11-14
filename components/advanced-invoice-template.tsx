@@ -105,6 +105,9 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
       await new Promise(resolve => setTimeout(resolve, 500))
 
       // Generate PDF using html2pdf.js
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       const pdfWorker = html2pdf()
         .set({
           margin: [6, 6, 6, 6],
@@ -117,7 +120,8 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
             logging: false,
             backgroundColor: "#ffffff",
             windowHeight: 1122,
-            windowWidth: 794
+            windowWidth: 794,
+            imageTimeout: 5000
           },
           jsPDF: {
             orientation: "portrait",
