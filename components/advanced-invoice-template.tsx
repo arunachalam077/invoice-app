@@ -49,19 +49,29 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
 
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       const pdfWorker = html2pdf()
         .set({
-          margin: [10, 10, 10, 10],
-          filename: `${invoice.invoiceNo}.pdf`,
-          image: { type: "jpeg", quality: 0.85 },
+          margin: [8, 8, 8, 8],
+          filename: `${editData.invoiceNo}.pdf`,
+          image: { type: "png", quality: 0.98 },
           html2canvas: {
-            scale: 1.3,
+            scale: 2,
             useCORS: true,
             allowTaint: true,
             logging: false,
-            backgroundColor: "#ffffff"
+            backgroundColor: "#ffffff",
+            windowHeight: 1400,
+            windowWidth: 900
           },
-          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+          jsPDF: {
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4",
+            compress: false
+          },
         })
         .from(element)
         .save()
@@ -91,20 +101,30 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
 
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       // Generate PDF using html2pdf.js
       const pdfWorker = html2pdf()
         .set({
-          margin: [10, 10, 10, 10],
+          margin: [8, 8, 8, 8],
           filename: `${invoice.invoiceNo}.pdf`,
-          image: { type: "jpeg", quality: 0.85 },
+          image: { type: "png", quality: 0.98 },
           html2canvas: {
-            scale: 1.3,
+            scale: 2,
             useCORS: true,
             allowTaint: true,
             logging: false,
-            backgroundColor: "#ffffff"
+            backgroundColor: "#ffffff",
+            windowHeight: 1400,
+            windowWidth: 900
           },
-          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+          jsPDF: {
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4",
+            compress: false
+          },
         })
         .from(element)
 

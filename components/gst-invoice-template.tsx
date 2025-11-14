@@ -62,19 +62,29 @@ export default function GSTInvoiceTemplate({ invoice, onBack, onSendEmail }: GST
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
 
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       const pdfWorker = html2pdf()
         .set({
-          margin: [10, 10, 10, 10],
-          filename: `${invoice.invoiceNo}.pdf`,
-          image: { type: "jpeg", quality: 0.85 },
+          margin: [8, 8, 8, 8],
+          filename: `${editData.invoiceNo}.pdf`,
+          image: { type: "png", quality: 0.98 },
           html2canvas: {
-            scale: 1.3,
+            scale: 2,
             useCORS: true,
             allowTaint: true,
             logging: false,
-            backgroundColor: "#ffffff"
+            backgroundColor: "#ffffff",
+            windowHeight: 1400,
+            windowWidth: 900
           },
-          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+          jsPDF: {
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4",
+            compress: false
+          },
         })
         .from(element)
         .save()
@@ -113,10 +123,36 @@ export default function GSTInvoiceTemplate({ invoice, onBack, onSendEmail }: GST
           },
           jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
         })
-        .from(element)
+        // Wait for images to load
+        await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Generate PDF as blob
-      const pdfBlob = await pdfWorker.output("blob")
+        // Recreate html2pdf with updated settings
+        const html2pdfLib = (await import("html2pdf.js")).default
+        const pdfWorker = html2pdfLib()
+          .set({
+            margin: [8, 8, 8, 8],
+            filename: `${invoice.invoiceNo}.pdf`,
+            image: { type: "png", quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              logging: false,
+              backgroundColor: "#ffffff",
+              windowHeight: 1400,
+              windowWidth: 900
+            },
+            jsPDF: {
+              orientation: "portrait",
+              unit: "mm",
+              format: "a4",
+              compress: false
+            },
+          })
+          .from(element)
+
+        // Generate PDF as blob
+        const pdfBlob = await pdfWorker.output("blob")
 
       // Convert blob to base64
       const reader = new FileReader()
