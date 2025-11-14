@@ -116,6 +116,50 @@ export default function GSTInvoiceTemplate({ invoice, onBack, onSendEmail }: GST
   const handleSendEmail = async () => {
     setIsSending(true)
     try {
+      const element = document.getElementById("gst-invoice-content")
+      if (!element) {
+        alert("Invoice element not found")
+        setIsSending(false)
+        return
+      }
+
+      // Dynamically import html2pdf.js to avoid SSR issues
+      const html2pdf = (await import("html2pdf.js")).default
+
+      const pdfWorker = html2pdf()
+        .set({
+          margin: [10, 10, 10, 10],
+          filename: `${invoice.invoiceNo}.pdf`,
+          image: { type: "png", quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+          },
+          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+        })
+        .from(element)
+
+      // Generate PDF as blob
+      const pdfBlob = await pdfWorker.output("blob")
+
+      // Convert blob to base64
+      const reader = new FileReader()
+      const pdfBase64 = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64data = reader.result as string
+          // Remove the data:application/pdf;base64, prefix
+          const base64 = base64data.split(",")[1]
+          resolve(base64)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(pdfBlob)
+      })
+
+      console.log("[v0] PDF generated successfully, sending email with attachment...")
+      console.log("[v0] PDF base64 length:", pdfBase64.length)
+
       const response = await fetch("/api/send-invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -124,19 +168,23 @@ export default function GSTInvoiceTemplate({ invoice, onBack, onSendEmail }: GST
           clientEmail: invoice.clientEmail,
           clientName: invoice.clientName,
           invoice: invoice,
+          pdfBase64, // Now properly encoded base64 PDF
         }),
       })
 
+      const result = await response.json()
+
       if (response.ok) {
-        console.log("[v0] Invoice email sent to", invoice.clientEmail)
+        console.log("[v0] Email sent successfully!")
         onSendEmail(invoice.invoiceNo)
-        alert(`Invoice sent to ${invoice.clientEmail}`)
+        alert(`✓ Invoice sent successfully to ${invoice.clientEmail}`)
       } else {
-        throw new Error("Failed to send email")
+        console.error("[v0] Email send failed:", result)
+        alert(`Failed to send email: ${result.error || result.message || "Unknown error"}`)
       }
     } catch (error) {
-      console.error("[v0] Email send failed:", error)
-      alert("Failed to send email. Please try again.")
+      console.error("[v0] PDF generation or email send failed:", error)
+      alert(`Failed to send email: ${error instanceof Error ? error.message : "Network error"}`)
     } finally {
       setIsSending(false)
     }

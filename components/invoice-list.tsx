@@ -11,21 +11,12 @@ export default function InvoiceList() {
 
   const handleSendEmail = async (invoice: any) => {
     try {
-      const response = await fetch("/api/send-invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invoiceNo: invoice.invoiceNo,
-          clientEmail: invoice.clientEmail,
-          clientName: invoice.clientName,
-          invoice: invoice,
-        }),
-      })
-
-      if (response.ok) {
-        updateInvoiceStatus(invoice.id, "sent")
-        alert(`Invoice sent successfully to ${invoice.clientEmail}`)
-      }
+      // For invoice-list, we don't have direct access to the invoice HTML element
+      // So we'll send without PDF for list view email. Users should use the detailed view to send with PDF.
+      // If they want PDF, they need to click "View" first, then "Send Email" from the detailed invoice view.
+      
+      // This is just a quick send from the list - shows a message
+      alert("Please click 'View' to open the invoice detail view, then send email from there to include the PDF attachment.")
     } catch (error) {
       console.error("[v0] Failed to send invoice:", error)
       alert("Failed to send invoice")
