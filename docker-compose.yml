@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  invoice-app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://neondb_owner:npg_VUHPDxT73szi@ep-raspy-bread-ac2aukv9-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - JWT_SECRET=sripada-studios-invoice-app-2025-production-secret-key-secure
+      - RESEND_API_KEY=re_QzTeGNuA_2V5cgYFpYC9gJzvTt8dM4G2Y
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
