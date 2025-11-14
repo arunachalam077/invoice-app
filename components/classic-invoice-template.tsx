@@ -105,7 +105,7 @@ export default function ClassicInvoiceTemplate({ invoice, onBack, onSendEmail }:
 
       const pdfWorker = html2pdf()
         .set({
-          margin: [8, 8, 8, 8],
+          margin: [6, 6, 6, 6],
           filename: `${invoice.invoiceNo}.pdf`,
           image: { type: "png", quality: 0.98 },
           html2canvas: {
@@ -114,8 +114,8 @@ export default function ClassicInvoiceTemplate({ invoice, onBack, onSendEmail }:
             allowTaint: true,
             logging: false,
             backgroundColor: "#ffffff",
-            windowHeight: 1400,
-            windowWidth: 900
+            windowHeight: 1122,
+            windowWidth: 794
           },
           jsPDF: {
             orientation: "portrait",

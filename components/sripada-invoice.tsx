@@ -114,7 +114,7 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
 
       const pdfWorker = html2pdf()
         .set({
-          margin: [8, 8, 8, 8],
+          margin: [6, 6, 6, 6],
           filename: `${editData.invoiceNo}.pdf`,
           image: { type: "png", quality: 0.98 },
           html2canvas: {
@@ -123,8 +123,8 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
             allowTaint: true,
             logging: false,
             backgroundColor: "#ffffff",
-            windowHeight: 1400,
-            windowWidth: 900
+            windowHeight: 1122,
+            windowWidth: 794
           },
           jsPDF: {
             orientation: "portrait",
@@ -337,31 +337,54 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
 
         {/* Invoice - A4 Single Page */}
         <div id="invoice-print" className="bg-white shadow-lg p-0" style={{ width: "210mm", margin: "0 auto" }}>
-          <div style={{ padding: "20mm", fontFamily: "Arial, sans-serif", color: "#333", fontSize: "11px" }}>
+          <div style={{ padding: "15mm", fontFamily: "Arial, sans-serif", color: "#333", fontSize: "10px" }}>
             {/* Header - Logo and GST */}
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "flex-start",
-                marginBottom: "15px",
-                paddingBottom: "12px",
-                borderBottom: "3px solid #216974",
+                alignItems: "center",
+                marginBottom: "12px",
+                paddingBottom: "10px",
+                borderBottom: "2px solid #216974",
               }}
             >
-              {/* Logo Section */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <img src="/sripada-logo-compact.svg" alt="Sripada Studios" style={{ height: "80px", width: "auto" }} />
+              {/* Logo and Company Info Section */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
+                {/* Sripada Logo */}
+                <svg viewBox="0 0 200 100" style={{ height: "60px", width: "auto" }} xmlns="http://www.w3.org/2000/svg">
+                  {/* Left decorative element with circles and curves */}
+                  <g>
+                    {/* Orange/brown arc */}
+                    <path d="M 25 30 Q 15 30 15 40 Q 15 50 25 50" fill="none" stroke="#C85A28" strokeWidth="8" strokeLinecap="round" />
+                    {/* Teal arc */}
+                    <path d="M 20 25 Q 10 25 10 35 Q 10 55 30 65" fill="none" stroke="#1B7F8C" strokeWidth="8" strokeLinecap="round" />
+                    {/* Brown circles */}
+                    <circle cx="35" cy="35" r="5" fill="#C85A28" />
+                    <circle cx="30" cy="55" r="4" fill="#C85A28" />
+                    {/* Teal circles */}
+                    <circle cx="20" cy="20" r="4" fill="#1B7F8C" />
+                    <circle cx="40" cy="60" r="5" fill="#1B7F8C" />
+                  </g>
+                  {/* Sripada Text */}
+                  <text x="65" y="55" fontSize="32" fontWeight="bold" fill="#1B7F8C" fontFamily="Arial, sans-serif">
+                    Sripada
+                  </text>
+                  {/* Studios Text */}
+                  <text x="65" y="85" fontSize="18" fontWeight="bold" fill="#C85A28" fontFamily="Arial, sans-serif">
+                    STUDIOS
+                  </text>
+                </svg>
               </div>
 
               {/* Invoice Title and GST Info */}
               <div style={{ textAlign: "right" }}>
-                <h1 style={{ fontSize: "36px", fontWeight: "bold", color: "#216974", margin: "0 0 8px 0" }}>INVOICE</h1>
-                <div style={{ fontSize: "10px", color: "#666", lineHeight: "1.5" }}>
+                <h1 style={{ fontSize: "32px", fontWeight: "bold", color: "#216974", margin: "0 0 6px 0" }}>INVOICE</h1>
+                <div style={{ fontSize: "9px", color: "#666", lineHeight: "1.4" }}>
                   <div style={{ fontWeight: "bold" }}>GST NUMBER</div>
-                  <div style={{ color: "#216974", fontWeight: "bold", fontSize: "11px" }}>{editData.gstNumber}</div>
-                  <div style={{ fontWeight: "bold", marginTop: "4px" }}>SAC/HSN</div>
-                  <div style={{ color: "#216974", fontWeight: "bold", fontSize: "11px" }}>{editData.sacHsn}</div>
+                  <div style={{ color: "#216974", fontWeight: "bold", fontSize: "10px" }}>{editData.gstNumber}</div>
+                  <div style={{ fontWeight: "bold", marginTop: "3px" }}>SAC/HSN</div>
+                  <div style={{ color: "#216974", fontWeight: "bold", fontSize: "10px" }}>{editData.sacHsn}</div>
                 </div>
               </div>
             </div>
