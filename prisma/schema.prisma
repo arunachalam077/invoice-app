@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  studio        String?
+  emailVerified Boolean   @default(false)
+  otp           String?
+  otpExpires    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bookings      Booking[]
+  invoices      Invoice[]
+  clients       Client[]
+
+  @@index([email])
+}
+
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  address     String?
+  gstId       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bookings    Booking[]
+  invoices    Invoice[]
+
+  @@index([userId])
+  @@index([email])
+}
+
+model Booking {
+  id                String   @id @default(cuid())
+  clientId          String
+  eventName         String
+  eventDate         DateTime
+  eventTime         String?
+  duration          Int?     // in hours
+  location          String?
+  status            String   @default("pending") // pending, confirmed, completed, cancelled
+  notes             String?
+  amount            Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  invoice           Invoice?
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([eventDate])
+}
+
+model Invoice {
+  id                  String   @id @default(cuid())
+  invoiceNo           String   @unique
+  clientId            String
+  bookingId           String?  @unique
+
+  // Invoice Details
+  date                DateTime @default(now())
+  dueDate             DateTime?
+  status              String   @default("draft") // draft, sent, paid, overdue
+
+  // Amounts
+  amount              Float
+  taxRate             Float?   @default(0)
+  discount            Float?   @default(0)
+  cgstRate            Float?   @default(0)
+  sgstRate            Float?   @default(0)
+
+  // Service Details
+  serviceDescription  String
+  servicePeriodFrom   DateTime?
+  servicePeriodTo     DateTime?
+  hours               String?
+
+  // GST Details
+  gstNumber           String?
+  sacHsn              String?
+
+  // Studio Details
+  studioName          String
+  studioEmail         String
+  studioAddress       String
+  studioPhone         String?
+  studioWebsite       String?
+  studioGSTNumber     String?
+
+  // Bank Details
+  bankAccountHolder   String?
+  bankAccountNumber   String?
+  bankName            String?
+  ifscCode            String?
+  upiId               String?
+
+  // Additional
+  notes               String?
+  terms               String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client              Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  booking             Booking? @relation(fields: [bookingId], references: [id])
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([invoiceNo])
+  @@index([status])
+  @@index([date])
+}
