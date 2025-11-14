@@ -57,44 +57,37 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
     return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
   }
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     try {
       const element = document.getElementById("invoice-print")
-      if (!element) return
+      if (!element) {
+        alert("Invoice element not found")
+        return
+      }
 
-      const printWindow = window.open("", "", "height=900,width=900")
-      if (!printWindow) return
+      // Dynamically import html2pdf.js to avoid SSR issues
+      const html2pdf = (await import("html2pdf.js")).default
 
-      const invoiceHTML = element.innerHTML
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>${editData.invoiceNo}</title>
-            <style>
-              @page {
-                size: A4;
-                margin: 0;
-              }
-              body {
-                margin: 0;
-                padding: 0;
-                background: white;
-              }
-              * {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-            </style>
-          </head>
-          <body onload="window.print(); window.close();">
-            ${invoiceHTML}
-          </body>
-        </html>
-      `)
-      printWindow.document.close()
+      const pdfWorker = html2pdf()
+        .set({
+          margin: [10, 10, 10, 10],
+          filename: `${editData.invoiceNo}.pdf`,
+          image: { type: "jpeg", quality: 0.85 },
+          html2canvas: {
+            scale: 1.3,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: "#ffffff"
+          },
+          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+        })
+        .from(element)
+        .save()
+
+      console.log("[v0] PDF downloaded successfully")
     } catch (error) {
-      console.error("PDF download failed:", error)
+      console.error("[v0] PDF download failed:", error)
       alert("Failed to generate PDF. Please try again.")
     }
   }

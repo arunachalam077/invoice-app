@@ -49,64 +49,38 @@ export default function ProfessionalGSTInvoice({ invoice, onBack, onSendEmail }:
   const totalGST = cgstAmount + sgstAmount
   const totalAmount = invoice.amount + totalGST
 
-  const handleDownload = () => {
-    const element = document.getElementById("gst-invoice-content")
-    if (element) {
-      const printWindow = window.open("", "", "width=900,height=1200")
-      if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>${invoice.invoiceNo}</title>
-            <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: Arial, sans-serif; color: #333; background: #f5f5f5; }
-              .container { max-width: 850px; margin: 20px auto; padding: 40px; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-              .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #0f3a47; padding-bottom: 15px; }
-              .studio-info h1 { font-size: 24px; font-weight: bold; color: #0f3a47; margin-bottom: 5px; }
-              .studio-info p { font-size: 12px; color: #666; margin-bottom: 2px; }
-              .invoice-title { text-align: right; font-size: 32px; font-weight: bold; color: #0f3a47; }
-              .meta-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px; padding: 15px; background: #f9f9f9; border-radius: 4px; }
-              .meta-item { }
-              .meta-label { font-size: 11px; font-weight: bold; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
-              .meta-value { font-size: 13px; font-weight: bold; color: #333; }
-              .bill-to { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #ddd; }
-              .bill-to-label { font-size: 11px; font-weight: bold; color: #999; text-transform: uppercase; margin-bottom: 8px; }
-              .bill-to-name { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 5px; }
-              .bill-to-details { font-size: 12px; color: #666; line-height: 1.6; }
-              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-              thead { background: #0f3a47; color: white; }
-              th { padding: 12px; text-align: left; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
-              td { padding: 12px; font-size: 12px; color: #333; border-bottom: 1px solid #ddd; }
-              tbody tr:hover { background: #f9f9f9; }
-              .amount-col { text-align: right; }
-              .totals-section { margin-top: 30px; }
-              .total-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
-              .total-label { width: 250px; text-align: left; font-size: 12px; font-weight: bold; color: #333; }
-              .total-value { width: 100px; text-align: right; font-size: 12px; font-weight: bold; color: #333; }
-              .total-final { display: flex; justify-content: flex-end; margin-top: 15px; padding-top: 15px; border-top: 3px solid #0f3a47; }
-              .total-final-label { width: 250px; text-align: left; font-size: 14px; font-weight: bold; color: #0f3a47; }
-              .total-final-value { width: 100px; text-align: right; font-size: 18px; font-weight: bold; color: #0f3a47; }
-              .thank-you { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 13px; color: #666; }
-              .bank-details { margin-top: 30px; padding: 15px; background: #f9f9f9; border-radius: 4px; }
-              .bank-label { font-size: 11px; font-weight: bold; color: #999; text-transform: uppercase; margin-bottom: 10px; }
-              .bank-detail { font-size: 12px; color: #333; line-height: 1.8; }
-              .footer-info { font-size: 11px; color: #666; text-align: center; margin-top: 20px; line-height: 1.6; }
-              .e-bill-notice { font-size: 10px; color: #999; text-align: center; margin-top: 15px; font-style: italic; }
-              @media print { body { padding: 0; } .container { margin: 0; box-shadow: none; } }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              ${element.innerHTML}
-            </div>
-          </body>
-          </html>
-        `)
-        printWindow.document.close()
-        printWindow.print()
+  const handleDownload = async () => {
+    try {
+      const element = document.getElementById("gst-invoice-content")
+      if (!element) {
+        alert("Invoice element not found")
+        return
       }
+
+      // Dynamically import html2pdf.js to avoid SSR issues
+      const html2pdf = (await import("html2pdf.js")).default
+
+      const pdfWorker = html2pdf()
+        .set({
+          margin: [10, 10, 10, 10],
+          filename: `${invoice.invoiceNo}.pdf`,
+          image: { type: "jpeg", quality: 0.85 },
+          html2canvas: {
+            scale: 1.3,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: "#ffffff"
+          },
+          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+        })
+        .from(element)
+        .save()
+
+      console.log("[v0] PDF downloaded successfully")
+    } catch (error) {
+      console.error("[v0] PDF download failed:", error)
+      alert("Failed to generate PDF. Please try again.")
     }
   }
 

@@ -38,38 +38,38 @@ export default function AdvancedInvoiceTemplate({ invoice, onBack, onSendEmail }
   const discountAmount = invoice.discount
   const total = subtotal + taxAmount - discountAmount
 
-  const handleDownload = () => {
-    const element = document.getElementById("invoice-content")
-    if (element) {
-      const html = element.innerHTML
-      const printWindow = window.open("", "", "width=800,height=600")
-      if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>${invoice.invoiceNo}</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; }
-              .invoice-container { max-width: 800px; margin: 0 auto; }
-              .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
-              .status-badge { padding: 8px 16px; border-radius: 20px; font-weight: bold; display: inline-block; }
-              .status-paid { background: #d1fae5; color: #065f46; }
-              .status-pending { background: #fef3c7; color: #92400e; }
-              .status-overdue { background: #fee2e2; color: #991b1b; }
-              table { width: 100%; border-collapse: collapse; }
-              th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-              th { background: #f3f4f6; font-weight: bold; }
-              .total-row { font-weight: bold; font-size: 16px; }
-              .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #e5e7eb; }
-            </style>
-          </head>
-          <body>${html}</body>
-          </html>
-        `)
-        printWindow.document.close()
-        printWindow.print()
+  const handleDownload = async () => {
+    try {
+      const element = document.getElementById("invoice-content")
+      if (!element) {
+        alert("Invoice element not found")
+        return
       }
+
+      // Dynamically import html2pdf.js to avoid SSR issues
+      const html2pdf = (await import("html2pdf.js")).default
+
+      const pdfWorker = html2pdf()
+        .set({
+          margin: [10, 10, 10, 10],
+          filename: `${invoice.invoiceNo}.pdf`,
+          image: { type: "jpeg", quality: 0.85 },
+          html2canvas: {
+            scale: 1.3,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: "#ffffff"
+          },
+          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+        })
+        .from(element)
+        .save()
+
+      console.log("[v0] PDF downloaded successfully")
+    } catch (error) {
+      console.error("[v0] PDF download failed:", error)
+      alert("Failed to generate PDF. Please try again.")
     }
   }
 

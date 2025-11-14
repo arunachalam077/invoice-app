@@ -39,71 +39,38 @@ export default function ClassicInvoiceTemplate({ invoice, onBack, onSendEmail }:
   const discountAmount = invoice.discount
   const total = subtotal + taxAmount - discountAmount
 
-  const handleDownload = () => {
-    const element = document.getElementById("classic-invoice-content")
-    if (element) {
-      const printWindow = window.open("", "", "width=900,height=1000")
-      if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>${invoice.invoiceNo}</title>
-            <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: 'Georgia', 'Times New Roman', serif; color: #333; line-height: 1.6; }
-              .container { max-width: 850px; margin: 0 auto; padding: 40px; background: white; }
-              .header { margin-bottom: 40px; border-bottom: 3px solid #216974; padding-bottom: 20px; }
-              .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-              .studio-info h1 { font-size: 28px; color: #216974; margin-bottom: 8px; }
-              .studio-info p { font-size: 13px; color: #666; margin-bottom: 4px; }
-              .invoice-label { font-size: 36px; font-weight: bold; color: #216974; text-align: right; }
-              .invoice-details { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-              .detail-box { }
-              .detail-label { font-size: 11px; font-weight: bold; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-              .detail-value { font-size: 14px; color: #333; font-weight: 600; }
-              .bill-to { margin-bottom: 30px; }
-              .bill-to-label { font-size: 11px; font-weight: bold; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-              .bill-to-name { font-size: 16px; font-weight: bold; color: #333; margin-bottom: 6px; }
-              .bill-to-details { font-size: 13px; color: #666; line-height: 1.8; }
-              table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-              thead { background: #f5f5f5; border: 1px solid #e0e0e0; }
-              th { padding: 12px 15px; text-align: left; font-size: 12px; font-weight: bold; color: #216974; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #e0e0e0; }
-              td { padding: 15px; font-size: 13px; color: #333; border-bottom: 1px solid #e0e0e0; }
-              tbody tr:hover { background: #fafafa; }
-              .amount-col { text-align: right; font-weight: 600; }
-              .summary { width: 100%; margin-bottom: 30px; }
-              .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
-              .summary-label { color: #666; }
-              .summary-value { font-weight: 600; color: #333; }
-              .total-row { border-bottom: 3px solid #216974; padding: 15px 0; margin-bottom: 10px; font-size: 16px; }
-              .total-row .summary-label { font-weight: bold; color: #216974; text-transform: uppercase; font-size: 14px; }
-              .total-row .summary-value { font-weight: bold; color: #216974; font-size: 20px; }
-              .notes-section { margin: 30px 0; padding: 15px; background: #f9f9f9; border-left: 3px solid #216974; }
-              .notes-label { font-size: 11px; font-weight: bold; color: #999; text-transform: uppercase; margin-bottom: 8px; }
-              .notes-text { font-size: 13px; color: #333; line-height: 1.6; }
-              .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 12px; color: #999; }
-              .status-badge { display: inline-block; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
-              .status-paid { background: #d1fae5; color: #065f46; }
-              .status-pending { background: #fef3c7; color: #92400e; }
-              .status-overdue { background: #fee2e2; color: #991b1b; }
-              .status-draft { background: #f0f0f0; color: #333; }
-              @media print {
-                body { padding: 0; }
-                .container { padding: 0; }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              ${element.innerHTML}
-            </div>
-          </body>
-          </html>
-        `)
-        printWindow.document.close()
-        printWindow.print()
+  const handleDownload = async () => {
+    try {
+      const element = document.getElementById("classic-invoice-content")
+      if (!element) {
+        alert("Invoice element not found")
+        return
       }
+
+      // Dynamically import html2pdf.js to avoid SSR issues
+      const html2pdf = (await import("html2pdf.js")).default
+
+      const pdfWorker = html2pdf()
+        .set({
+          margin: [10, 10, 10, 10],
+          filename: `${invoice.invoiceNo}.pdf`,
+          image: { type: "jpeg", quality: 0.85 },
+          html2canvas: {
+            scale: 1.3,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: "#ffffff"
+          },
+          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+        })
+        .from(element)
+        .save()
+
+      console.log("[v0] PDF downloaded successfully")
+    } catch (error) {
+      console.error("[v0] PDF download failed:", error)
+      alert("Failed to generate PDF. Please try again.")
     }
   }
 
