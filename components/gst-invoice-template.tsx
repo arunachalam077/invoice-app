@@ -59,11 +59,38 @@ export default function GSTInvoiceTemplate({ invoice, onBack, onSendEmail }: GST
         return
       }
 
+      // Helper: inline same-origin images before PDF capture
+      const inlineImages = async (rootEl: HTMLElement) => {
+        const imgs = Array.from(rootEl.querySelectorAll("img")) as HTMLImageElement[]
+        await Promise.all(
+          imgs.map(async (img) => {
+            try {
+              const src = img.getAttribute("src") || ""
+              if (!src || src.startsWith("data:")) return
+              const absUrl = src.startsWith("/") ? `${window.location.origin}${src}` : src
+              const res = await fetch(absUrl)
+              if (!res.ok) return
+              const blob = await res.blob()
+              const reader = new FileReader()
+              const dataUrl: string = await new Promise((resolve, reject) => {
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+                reader.readAsDataURL(blob)
+              })
+              try { img.removeAttribute("crossOrigin") } catch (e) {}
+              img.src = dataUrl
+            } catch (err) {
+              console.warn("[v0] inlineImages failed for", img.src, err)
+            }
+          })
+        )
+      }
+
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
 
-      // Wait for images to load
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Inline images before generating PDF
+      await inlineImages(element)
 
       const pdfWorker = html2pdf()
         .set({
@@ -109,7 +136,37 @@ export default function GSTInvoiceTemplate({ invoice, onBack, onSendEmail }: GST
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
 
-      const pdfWorker = html2pdf()
+      // Inline images before generating PDF
+      const inlineImages = async (rootEl: HTMLElement) => {
+        const imgs = Array.from(rootEl.querySelectorAll("img")) as HTMLImageElement[]
+        await Promise.all(
+          imgs.map(async (img) => {
+            try {
+              const src = img.getAttribute("src") || ""
+              if (!src || src.startsWith("data:")) return
+              const absUrl = src.startsWith("/") ? `${window.location.origin}${src}` : src
+              const res = await fetch(absUrl)
+              if (!res.ok) return
+              const blob = await res.blob()
+              const reader = new FileReader()
+              const dataUrl: string = await new Promise((resolve, reject) => {
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+                reader.readAsDataURL(blob)
+              })
+              try { img.removeAttribute("crossOrigin") } catch (e) {}
+              img.src = dataUrl
+            } catch (err) {
+              console.warn("[v0] inlineImages failed for", img.src, err)
+            }
+          })
+        )
+      }
+
+      await inlineImages(element)
+
+      // Recreate html2pdf with updated settings
+      const html2pdfLib = (await import("html2pdf.js")).default
         .set({
           margin: [10, 10, 10, 10],
           filename: `${invoice.invoiceNo}.pdf`,

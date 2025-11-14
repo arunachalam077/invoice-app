@@ -65,8 +65,41 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
         return
       }
 
+      // Helper: inline same-origin images as data URLs so html2canvas includes them
+      const inlineImages = async (rootEl: HTMLElement) => {
+        const imgs = Array.from(rootEl.querySelectorAll("img")) as HTMLImageElement[]
+        await Promise.all(
+          imgs.map(async (img) => {
+            try {
+              const src = img.getAttribute("src") || ""
+              if (!src || src.startsWith("data:")) return
+              // Resolve absolute URL for same-origin relative paths
+              const absUrl = src.startsWith("/") ? `${window.location.origin}${src}` : src
+              const res = await fetch(absUrl)
+              if (!res.ok) return
+              const blob = await res.blob()
+              const reader = new FileReader()
+              const dataUrl: string = await new Promise((resolve, reject) => {
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+                reader.readAsDataURL(blob)
+              })
+              // Remove crossOrigin to avoid potential taint issues and set inlined src
+              try { img.removeAttribute("crossOrigin") } catch (e) {}
+              img.src = dataUrl
+            } catch (err) {
+              // keep going if one image fails
+              console.warn("[v0] inlineImages failed for", img.src, err)
+            }
+          })
+        )
+      }
+
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
+
+      // Inline images before generating PDF to ensure logo and other assets are embedded
+      await inlineImages(element)
 
       const pdfWorker = html2pdf()
         .set({
@@ -109,8 +142,34 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
 
-      // Wait for images to load - increased time to ensure logo loads
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Inline images before generating PDF so html2canvas captures them reliably
+      const inlineImages = async (rootEl: HTMLElement) => {
+        const imgs = Array.from(rootEl.querySelectorAll("img")) as HTMLImageElement[]
+        await Promise.all(
+          imgs.map(async (img) => {
+            try {
+              const src = img.getAttribute("src") || ""
+              if (!src || src.startsWith("data:")) return
+              const absUrl = src.startsWith("/") ? `${window.location.origin}${src}` : src
+              const res = await fetch(absUrl)
+              if (!res.ok) return
+              const blob = await res.blob()
+              const reader = new FileReader()
+              const dataUrl: string = await new Promise((resolve, reject) => {
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+                reader.readAsDataURL(blob)
+              })
+              try { img.removeAttribute("crossOrigin") } catch (e) {}
+              img.src = dataUrl
+            } catch (err) {
+              console.warn("[v0] inlineImages failed for", img.src, err)
+            }
+          })
+        )
+      }
+
+      await inlineImages(element)
 
       const pdfWorker = html2pdf()
         .set({
