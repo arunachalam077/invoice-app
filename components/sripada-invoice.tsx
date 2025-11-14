@@ -116,21 +116,21 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
       // Dynamically import html2pdf.js to avoid SSR issues
       const html2pdf = (await import("html2pdf.js")).default
 
-      const pdfWorker = html2pdf()
-        .set({
-          margin: [10, 10, 10, 10],
-          filename: `${editData.invoiceNo}.pdf`,
-          image: { type: "png", quality: 0.70 },
-          html2canvas: {
-            scale: 1.5,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: "#ffffff"
-          },
-          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
-        })
-        .from(element)
+        const pdfWorker = html2pdf()
+          .set({
+            margin: [10, 10, 10, 10],
+            filename: `${editData.invoiceNo}.pdf`,
+            image: { type: "jpeg", quality: 0.6 },
+            html2canvas: {
+              scale: 1.0,
+              useCORS: true,
+              allowTaint: true,
+              logging: false,
+              backgroundColor: "#ffffff"
+            },
+            jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+          })
+          .from(element)
 
       // Generate PDF as blob
       const pdfBlob = await pdfWorker.output("blob")
@@ -166,7 +166,13 @@ export default function SripadaInvoice({ invoice, onBack, onSendEmail, onEdit }:
         })
 
         console.log("[v0] API response status:", response.status, response.statusText)
-        const result = await response.json()
+          let result: any = null
+          try {
+            result = await response.json()
+          } catch (err) {
+            const raw = await response.text().catch(() => String(err))
+            result = { error: raw }
+          }
         console.log("[v0] API response body:", result)
 
         if (response.ok) {

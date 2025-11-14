@@ -127,9 +127,9 @@ export default function ProfessionalGSTInvoice({ invoice, onBack, onSendEmail }:
         .set({
           margin: [10, 10, 10, 10],
           filename: `${invoice.invoiceNo}.pdf`,
-          image: { type: "png", quality: 0.70 },
+          image: { type: "jpeg", quality: 0.6 },
           html2canvas: {
-            scale: 1.5,
+            scale: 1.0,
             useCORS: true,
             allowTaint: true,
             logging: false,
@@ -171,7 +171,13 @@ export default function ProfessionalGSTInvoice({ invoice, onBack, onSendEmail }:
       })
 
       console.log("[v0] API response status:", response.status, response.statusText)
-      const result = await response.json()
+      let result: any = null
+      try {
+        result = await response.json()
+      } catch (err) {
+        const raw = await response.text().catch(() => String(err))
+        result = { error: raw }
+      }
       console.log("[v0] API response body:", result)
 
       if (response.ok) {
