@@ -57,15 +57,29 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(requestBody),
     })
 
-    const result = await response.json()
+    // Try to parse JSON response from Resend; if parsing fails, fallback to text
+    let result: any = null
+    let rawText: string | null = null
+    try {
+      result = await response.json()
+    } catch (parseError) {
+      try {
+        rawText = await response.text()
+      } catch (textError) {
+        rawText = String(textError)
+      }
+      result = { message: rawText }
+    }
 
     console.log("[v0] Resend API response status:", response.status)
-    console.log("[v0] Resend API response:", result)
+    console.log("[v0] Resend API response (parsed):", result)
+    if (rawText) console.log("[v0] Resend API raw text response:", rawText)
 
     if (!response.ok) {
       console.error("[v0] Resend API error:", result)
+      const errorMessage = result?.message || rawText || "Failed to send invoice email"
       return NextResponse.json(
-        { success: false, error: result.message || "Failed to send invoice email" },
+        { success: false, error: errorMessage, details: result },
         { status: response.status },
       )
     }
