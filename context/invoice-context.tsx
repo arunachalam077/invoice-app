@@ -44,8 +44,16 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
         headers: getAuthHeaders(),
       })
 
+      // Safe parse
       if (response.ok) {
-        const data = await response.json()
+        let data: any = null
+        try {
+          data = await response.json()
+        } catch (err) {
+          const raw = await response.text().catch(() => String(err))
+          console.warn('[v0] loadInvoices: non-JSON response:', raw)
+          data = { invoices: [] }
+        }
         setInvoices(data.invoices || [])
       }
     } catch (error) {
@@ -64,7 +72,14 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        let data: any = null
+        try {
+          data = await response.json()
+        } catch (err) {
+          const raw = await response.text().catch(() => String(err))
+          console.warn('[v0] addInvoice: non-JSON response:', raw)
+          return
+        }
         setInvoices((prev) => [...prev, data.invoice])
       }
     } catch (error) {
@@ -98,7 +113,13 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        let errorData: any = null
+        try {
+          errorData = await response.json()
+        } catch (err) {
+          const raw = await response.text().catch(() => String(err))
+          throw new Error(raw || `HTTP ${response.status}`)
+        }
         throw new Error(errorData.error || "Failed to delete invoice")
       }
 
@@ -118,11 +139,24 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        let errorData: any = null
+        try {
+          errorData = await response.json()
+        } catch (err) {
+          const raw = await response.text().catch(() => String(err))
+          throw new Error(raw || `HTTP ${response.status}`)
+        }
         throw new Error(errorData.error || "Failed to update invoice")
       }
 
-      const data = await response.json()
+      let data: any = null
+      try {
+        data = await response.json()
+      } catch (err) {
+        const raw = await response.text().catch(() => String(err))
+        console.warn('[v0] updateInvoice: non-JSON response:', raw)
+        return
+      }
       setInvoices((prev) => prev.map((inv) => (inv.id === id ? data.invoice : inv)))
     } catch (error) {
       console.error("Failed to update invoice:", error)
@@ -139,11 +173,24 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        let errorData: any = null
+        try {
+          errorData = await response.json()
+        } catch (err) {
+          const raw = await response.text().catch(() => String(err))
+          throw new Error(raw || `HTTP ${response.status}`)
+        }
         throw new Error(errorData.error || "Failed to duplicate invoice")
       }
 
-      const data = await response.json()
+      let data: any = null
+      try {
+        data = await response.json()
+      } catch (err) {
+        const raw = await response.text().catch(() => String(err))
+        console.warn('[v0] duplicateInvoice: non-JSON response:', raw)
+        return
+      }
       setInvoices((prev) => [...prev, data.invoice])
     } catch (error) {
       console.error("Failed to duplicate invoice:", error)

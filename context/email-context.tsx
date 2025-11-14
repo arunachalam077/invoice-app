@@ -39,10 +39,23 @@ export function EmailProvider({ children }: { children: ReactNode }) {
         }),
       })
 
-      const result = await response.json()
+      // Safe response parsing: prefer JSON, fall back to text
+      let result: any = null
+      try {
+        result = await response.json()
+      } catch (err) {
+        const raw = await response.text().catch(() => String(err))
+        result = { error: raw }
+      }
+
       if (!response.ok) {
-        console.error("[v0] Email send error:", result)
-        throw new Error(result.error || "Failed to send email")
+        const errorMsg = result?.error || result?.message || `HTTP ${response.status}`
+        console.error("[v0] Email send error:", errorMsg)
+        // Provide clearer guidance for large payloads
+        if (response.status === 413) {
+          throw new Error("Request too large. Reduce PDF size or deploy to a host that accepts larger request bodies.")
+        }
+        throw new Error(errorMsg || "Failed to send email")
       }
       console.log("[v0] Email sent successfully to:", to)
     } catch (error) {
